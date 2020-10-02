@@ -1,4 +1,5 @@
 use std::ops;
+use rand::Rng;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Vector3 {
@@ -15,6 +16,16 @@ pub type Point3 = Vector3;
 impl Default for Vector3 {
     fn default() -> Vector3 {
         Vector3 {x: 0_f64, y: 0_f64, z: 0_f64}
+    }
+}
+
+impl ops::AddAssign for Vector3 {
+    fn add_assign(&mut self, other: Self) {
+        *self = Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z
+        }
     }
 }
 
@@ -102,6 +113,19 @@ impl Vector3 {
     pub fn length_squared(&self) -> f64 {
         self.x.powf(2_f64) + self.y.powf(2_f64) + self.z.powf(2_f64)
     }
+
+    pub fn new_random_unit() -> Self {
+        let mut rng = rand::thread_rng();
+        let a: f64 = rng.gen_range(0.0, 2.0 * std::f64::consts::PI);
+        let z: f64 = rng.gen_range(-1.0, 1.0);
+        let r: f64 = (1.0 - z * z).sqrt();
+
+        Self {
+            x: r * a.cos(),
+            y: r * a.sin(),
+            z: z
+        }
+    }
 }
 
 pub fn unit_vector(vector: &Vector3) -> Vector3 {
@@ -110,4 +134,14 @@ pub fn unit_vector(vector: &Vector3) -> Vector3 {
 
 pub fn dot_product(u: &Vector3, v: &Vector3) -> f64 {
     return (u.x * v.x) + (u.y * v.y) + (u.z * v.z);
+}
+
+pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
+    if x < min {
+        min
+    } else if x > max {
+        max
+    } else {
+        x
+    }
 }
