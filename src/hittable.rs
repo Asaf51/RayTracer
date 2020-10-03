@@ -1,13 +1,16 @@
 use std::vec::Vec;
+use std::rc::Rc;
 use std::boxed::Box;
 use super::{Point3, Vector3, Ray, dot_product};
+use crate::material::Material;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone)]
 pub struct HitRecord {
     pub point: Point3,
     pub normal: Vector3,
     pub t: f64,
     pub front_face: bool,
+    pub material: Rc<dyn Material>
 }
 
 impl HitRecord {
@@ -41,7 +44,7 @@ impl Hit for HittableList {
 
             match res {
                 Some(hit) => {
-                    hit_record = Some(hit);
+                    hit_record = Some(hit.clone());
                     closest_so_far = hit.t;
                 },
                 None => ()

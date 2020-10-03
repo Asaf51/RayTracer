@@ -3,6 +3,7 @@ mod ray;
 mod hittable;
 mod sphere;
 mod camera;
+mod material;
 
 use std::fs::File;
 use std::io::prelude::*;
@@ -10,6 +11,7 @@ use std::path::Path;
 use std::io::BufWriter;
 use rand::Rng;
 use indicatif::{ProgressBar, ProgressStyle};
+use std::rc::Rc;
 
 use ray::Ray;
 use hittable::{Hit, HittableList};
@@ -18,6 +20,7 @@ use camera::Camera;
 use vec3::{
     Color, Vector3, Point3, unit_vector, dot_product, clamp
 };
+use material::{Lambertian, Metal};
 
 const ASPECT_RATIO: f64 = 16.0 / 10.0;
 const IMAGE_WIDTH: u64 = 1920;
@@ -27,7 +30,7 @@ const RAYS_PER_PIXEL: f64 = 100.0;
 const MAX_DEPTH: i8 = 50;
 
 fn write_header(file: &mut BufWriter<File>) {
-    writeln!(file, "P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT);
+    writeln!(file, "P3\n{} {}\n255", IMAGE_WIDTH, IMAGE_HEIGHT).unwrap();
 }
 
 fn write_color(file: &mut BufWriter<File>, color: &Color, samples: f64) {
@@ -44,7 +47,7 @@ fn write_color(file: &mut BufWriter<File>, color: &Color, samples: f64) {
         (clamp(r, 0.0, 0.999) * 256.0) as i32,
         (clamp(g, 0.0, 0.999) * 256.0) as i32,
         (clamp(b, 0.0, 0.999) * 256.0) as i32,
-    );
+    ).unwrap();
 }
 
 fn ray_color(ray: &Ray, world: &HittableList, depth: i8) -> Color {
@@ -55,8 +58,15 @@ fn ray_color(ray: &Ray, world: &HittableList, depth: i8) -> Color {
     let hit = world.hit(ray, 0.001, std::f64::INFINITY);
     if hit.is_some() {
         let hit_record = hit.unwrap();
-        let target = hit_record.point + hit_record.normal + Vector3::new_random_unit();
-        return ray_color(&Ray::new(hit_record.point, target - hit_record.point), world, depth - 1) * 0.5;
+
+        match hit_record.material.scatter(ray, &hit_record) {
+            Some(material_info) => {
+                return material_info.attenuation * ray_color(&material_info.scattered, world, depth - 1);
+            },
+            None => {
+                return Color::default();
+            }
+        }
     }
 
     // Get the normalized direction vector 
@@ -68,9 +78,24 @@ fn ray_color(ray: &Ray, world: &HittableList, depth: i8) -> Color {
 
 fn init_world() -> HittableList {
     let mut world = HittableList::new();
-    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
-    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
 
+    let material_ground = Rc::new(Lambertian {albedo: Color::new(0.5, 0.5, 0.5)});
+    let material_center = Rc::new(Lambertian {albedo: Color::new(0.9, 0.1, 0.1)});
+    let material_left = Rc::new(Metal {albedo: Color::new(0.8, 0.8, 0.8)});
+    let material_right = Rc::new(Metal {albedo: Color::new(0.8, 0.6, 0.2)});
+
+    // Ground
+    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -7.5, -1.0), 7.0, material_ground)));
+    
+    // Center
+    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
+
+    // Left
+    world.objects.push(Box::new(Sphere::new(Point3::new(-1.1, 0.0, -1.0), 0.5, material_left)));
+
+    // Right
+    world.objects.push(Box::new(Sphere::new(Point3::new(1.1, 0.0, -1.0), 0.5, material_right)));
+    
     world
 }
 
@@ -103,7 +128,7 @@ fn main() {
         for i in 0..IMAGE_WIDTH {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
 
-            for s in 0..RAYS_PER_PIXEL as i32 {
+            for _s in 0..RAYS_PER_PIXEL as i32 {
                 let u = ((i as f64) + rng.gen_range(0.0, 1.0))/ (IMAGE_WIDTH - 1) as f64;
                 let v = ((j as f64) + rng.gen_range(0.0, 1.0)) / (IMAGE_HEIGHT - 1) as f64;
                 let ray = camera.get_ray(u, v);
