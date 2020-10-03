@@ -20,13 +20,13 @@ use camera::Camera;
 use vec3::{
     Color, Vector3, Point3, unit_vector, dot_product, clamp
 };
-use material::{Lambertian, Metal};
+use material::{Lambertian, Metal, Dielectric};
 
 const ASPECT_RATIO: f64 = 16.0 / 10.0;
 const IMAGE_WIDTH: u64 = 1920;
 const IMAGE_HEIGHT: u64 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u64;
 
-const RAYS_PER_PIXEL: f64 = 100.0;
+const RAYS_PER_PIXEL: f64 = 1000.0;
 const MAX_DEPTH: i8 = 50;
 
 fn write_header(file: &mut BufWriter<File>) {
@@ -81,20 +81,20 @@ fn init_world() -> HittableList {
 
     let material_ground = Rc::new(Lambertian {albedo: Color::new(0.5, 0.5, 0.5)});
     let material_center = Rc::new(Lambertian {albedo: Color::new(0.9, 0.1, 0.1)});
-    let material_left = Rc::new(Metal {albedo: Color::new(0.8, 0.8, 0.8)});
-    let material_right = Rc::new(Metal {albedo: Color::new(0.8, 0.6, 0.2)});
+    let material_left = Rc::new(Metal::new(Color::new(0.5, 0.5, 0.5), 0.3));
+    let material_right = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
 
     // Ground
-    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -7.5, -1.0), 7.0, material_ground)));
+    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
     
     // Center
     world.objects.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
 
     // Left
-    world.objects.push(Box::new(Sphere::new(Point3::new(-1.1, 0.0, -1.0), 0.5, material_left)));
+    world.objects.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
 
     // Right
-    world.objects.push(Box::new(Sphere::new(Point3::new(1.1, 0.0, -1.0), 0.5, material_right)));
+    world.objects.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
     
     world
 }

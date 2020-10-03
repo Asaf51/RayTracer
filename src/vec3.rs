@@ -126,16 +126,28 @@ impl Vector3 {
             z: z
         }
     }
+
+    pub fn random(min: f64, max: f64) -> Self {
+        let mut rng = rand::thread_rng();
+        Self {
+            x: rng.gen_range(min, max),
+            y: rng.gen_range(min, max),
+            z: rng.gen_range(min, max)
+        }
+    }
 }
 
+#[inline]
 pub fn unit_vector(vector: &Vector3) -> Vector3 {
     vector / vector.length()
 }
 
+#[inline]
 pub fn dot_product(u: &Vector3, v: &Vector3) -> f64 {
     return (u.x * v.x) + (u.y * v.y) + (u.z * v.z);
 }
 
+#[inline]
 pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
     if x < min {
         min
@@ -144,4 +156,16 @@ pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
     } else {
         x
     }
+}
+
+#[inline]
+pub fn random_in_unit_sphere() -> Vector3 {
+    let mut v;
+    while {
+       v = Vector3::random(-1.0, 1.0);
+
+       v.length_squared() >= 1.0
+    } {}
+
+    v
 }
