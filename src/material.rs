@@ -27,7 +27,7 @@ pub struct Dielectric {
 impl Metal {
     pub fn new (albedo: Color, fuzz: f64) -> Self {
         Self {
-            albedo: albedo,
+            albedo,
             fuzz: if fuzz < 1.0 { fuzz } else { 1.0 }  
         }
     }
@@ -35,7 +35,7 @@ impl Metal {
 
 impl Dielectric {
     pub fn new (ref_idx: f64) -> Self {
-        Self { ref_idx: ref_idx }
+        Self { ref_idx }
     }
 }
 
@@ -61,7 +61,7 @@ impl Material for Dielectric {
 }
 
 fn reflect(vec: &Vector3, normal: &Vector3) -> Vector3 {
-    *vec -  *normal * 2.0 * dot_product(vec, normal)
+    *vec - *normal * 2.0 * dot_product(vec, normal)
 }
 
 impl Material for Metal {
@@ -71,13 +71,12 @@ impl Material for Metal {
 
         if dot_product(&scattered.direction, &hit_record.normal) > 0.0 {
             Some(MaterialInfo {
-                scattered: scattered,
+                scattered,
                 attenuation: self.albedo
             })
         } else {
             None
         }
-        
     }
 }
 

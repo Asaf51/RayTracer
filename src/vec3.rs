@@ -111,7 +111,7 @@ impl Vector3 {
     }
 
     pub fn length_squared(&self) -> f64 {
-        self.x.powf(2_f64) + self.y.powf(2_f64) + self.z.powf(2_f64)
+        self.x * self.x + self.y * self.y + self.z * self.z
     }
 
     pub fn new_random_unit() -> Self {
@@ -123,7 +123,7 @@ impl Vector3 {
         Self {
             x: r * a.cos(),
             y: r * a.sin(),
-            z: z
+            z
         }
     }
 
@@ -160,12 +160,16 @@ pub fn clamp(x: f64, min: f64, max: f64) -> f64 {
 
 #[inline]
 pub fn random_in_unit_sphere() -> Vector3 {
-    let mut v;
-    while {
-       v = Vector3::random(-1.0, 1.0);
-
-       v.length_squared() >= 1.0
-    } {}
-
-    v
+    let mut rng = rand::thread_rng();
+    let x : f64 = rng.gen_range(-1.0, 1.0);
+    let y : f64 = rng.gen_range(-1.0, 1.0);
+    let current_size = x * x + y * y;
+    let z : f64 = if current_size > 1.0 {
+        rng.gen_range(-1.0, 1.0)
+    } else {
+        let flip : bool = rng.gen();
+        let abs_z = rng.gen_range((1.0 - current_size).sqrt(), 1.0);
+        if flip { -abs_z } else { abs_z }
+    };
+    Vector3::new(x, y, z)
 }

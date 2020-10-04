@@ -4,7 +4,6 @@ use std::boxed::Box;
 use super::{Point3, Vector3, Ray, dot_product};
 use crate::material::Material;
 
-#[derive(Clone)]
 pub struct HitRecord {
     pub point: Point3,
     pub normal: Vector3,
@@ -39,15 +38,10 @@ impl Hit for HittableList {
         let mut closest_so_far = max_t;
         let mut hit_record: Option<HitRecord> = None;
 
-        for object in self.objects.iter() {
-            let res = object.hit(ray, min_t, closest_so_far);
-
-            match res {
-                Some(hit) => {
-                    hit_record = Some(hit.clone());
-                    closest_so_far = hit.t;
-                },
-                None => ()
+        for object in &self.objects {
+            if let Some(hit) = object.hit(ray, min_t, closest_so_far) {
+                closest_so_far = hit.t;
+                hit_record = Some(hit);
             }
         }
 
