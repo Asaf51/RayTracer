@@ -22,6 +22,8 @@ use vec3::{
 };
 use material::{Lambertian, Metal, Dielectric};
 
+const IMAGE_BUFFER_SIZE: usize = 100 * 1024 * 1024;
+
 const ASPECT_RATIO: f64 = 16.0 / 10.0;
 const IMAGE_WIDTH: u64 = 1920;
 const IMAGE_HEIGHT: u64 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u64;
@@ -34,19 +36,16 @@ fn write_header(file: &mut BufWriter<File>) {
 }
 
 fn write_color(file: &mut BufWriter<File>, color: &Color, samples: f64) {
-    let mut r = color.x;
-    let mut g = color.y;
-    let mut b = color.z;
-
     let scale = 1.0 / samples;
-    r = (scale * r).sqrt();
-    g = (scale * g).sqrt();
-    b = (scale * b).sqrt();
 
-    writeln!(file, "{} {} {}", 
-        (clamp(r, 0.0, 0.999) * 256.0) as i32,
-        (clamp(g, 0.0, 0.999) * 256.0) as i32,
-        (clamp(b, 0.0, 0.999) * 256.0) as i32,
+    let r = color.x * scale;
+    let g = color.y * scale;
+    let b = color.z * scale;
+
+    writeln!(file, "{} {} {}",
+        (clamp(r.sqrt(), 0.0, 0.999) * 256.0) as i32,
+        (clamp(g.sqrt(), 0.0, 0.999) * 256.0) as i32,
+        (clamp(b.sqrt(), 0.0, 0.999) * 256.0) as i32,
     ).unwrap();
 }
 
@@ -55,25 +54,22 @@ fn ray_color(ray: &Ray, world: &HittableList, depth: i8) -> Color {
         return Color::new(0.0, 0.0, 0.0);
     }
 
-    let hit = world.hit(ray, 0.001, std::f64::INFINITY);
-    if hit.is_some() {
-        let hit_record = hit.unwrap();
-
-        match hit_record.material.scatter(ray, &hit_record) {
-            Some(material_info) => {
-                return material_info.attenuation * ray_color(&material_info.scattered, world, depth - 1);
-            },
-            None => {
-                return Color::default();
-            }
+    if let Some(hit) = world.hit(ray, 0.001, std::f64::INFINITY) {
+        if let Some(material_info) = hit.material.scatter(ray, &hit) {
+            material_info.attenuation * ray_color(&material_info.scattered, world, depth - 1)
+        } else {
+            Color::default()
         }
+    } else {
+        // Get the normalized direction vector
+        let unit_direction = unit_vector(&ray.direction);
+
+        let t = 0.5 * (unit_direction.y + 1.0);
+        let color_base = 1.0 - t;
+
+        // color: 0.5, 0.7, 1.0
+        Color::new(color_base + 0.5 * t, color_base + 0.7 * t, color_base + t)
     }
-
-    // Get the normalized direction vector 
-    let unit_direction = unit_vector(&ray.direction);
-
-    let t = 0.5 * (unit_direction.y + 1.0);
-    Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
 }
 
 fn init_world() -> HittableList {
@@ -86,7 +82,7 @@ fn init_world() -> HittableList {
 
     // Ground
     world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
-    
+
     // Center
     world.objects.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
 
@@ -95,7 +91,7 @@ fn init_world() -> HittableList {
 
     // Right
     world.objects.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
-    
+
     world
 }
 
@@ -106,7 +102,7 @@ fn init_file(filename: &str) -> BufWriter<File> {
         Ok(file) => file,
     };
 
-    let mut buf = BufWriter::new(file);
+    let mut buf = BufWriter::with_capacity(IMAGE_BUFFER_SIZE, file);
     write_header(&mut buf);
 
     buf
@@ -128,13 +124,13 @@ fn main() {
         for i in 0..IMAGE_WIDTH {
             let mut pixel_color = Color::new(0.0, 0.0, 0.0);
 
-            for _s in 0..RAYS_PER_PIXEL as i32 {
-                let u = ((i as f64) + rng.gen_range(0.0, 1.0))/ (IMAGE_WIDTH - 1) as f64;
+            for _ in 0..RAYS_PER_PIXEL as i32 {
+                let u = ((i as f64) + rng.gen_range(0.0, 1.0)) / (IMAGE_WIDTH - 1) as f64;
                 let v = ((j as f64) + rng.gen_range(0.0, 1.0)) / (IMAGE_HEIGHT - 1) as f64;
                 let ray = camera.get_ray(u, v);
                 pixel_color += ray_color(&ray, &world, MAX_DEPTH);
             }
-            
+
             write_color(&mut buf, &pixel_color, RAYS_PER_PIXEL);
         }
 
@@ -142,5 +138,6 @@ fn main() {
     }
 
     bar.finish();
+
     buf.flush().unwrap();
 }

@@ -23,7 +23,7 @@ impl Camera {
         let lower_left_corner = CAMERA_ORIGIN - (HORIZONTAL / 2.0) - (VERTICAL / 2.0) - Vector3::new(0.0, 0.0, FOCAL_LENGTH);
         Self {
             origin: CAMERA_ORIGIN,
-            lower_left_corner: lower_left_corner,
+            lower_left_corner,
             horizontal: HORIZONTAL,
             vertical: VERTICAL
         }
