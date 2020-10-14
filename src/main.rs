@@ -18,15 +18,16 @@ use hittable::{Hit, HittableList};
 use sphere::Sphere;
 use camera::Camera;
 use vec3::{
-    Color, Vector3, Point3, unit_vector, dot_product, clamp
+    Color, Vector3, Point3, unit_vector, dot_product, clamp, cross
 };
 use material::{Lambertian, Metal, Dielectric};
 
 const IMAGE_BUFFER_SIZE: usize = 100 * 1024 * 1024;
 
 const ASPECT_RATIO: f64 = 16.0 / 10.0;
-const IMAGE_WIDTH: u64 = 1920;
+const IMAGE_WIDTH: u64 = 1000;
 const IMAGE_HEIGHT: u64 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u64;
+const VFOV: f64 = 50.0; // In degrees
 
 const RAYS_PER_PIXEL: f64 = 1000.0;
 const MAX_DEPTH: i8 = 50;
@@ -112,7 +113,11 @@ fn main() {
     let mut buf = init_file("output1.ppm");
     let world = init_world();
 
-    let camera = Camera::new();
+    let camera = Camera::new(
+        Point3::new(0.0, 0.3, 1.0),
+        Point3::new(0.0, 0.0, -1.0),
+        Point3::new(0.0, 1.0, 0.0),
+        VFOV, ASPECT_RATIO);
     let mut rng = rand::thread_rng();
 
     let bar = ProgressBar::new(IMAGE_HEIGHT);

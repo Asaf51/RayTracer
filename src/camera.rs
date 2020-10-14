@@ -1,15 +1,4 @@
-use super::{Point3, Vector3, Ray};
-
-// All those are consts for now, maybe configurable in the future :)
-const ASPECT_RATIO: f64 = 16.0 / 10.0;
-const VIEWPORT_HEIGHT: f64 = 2.0;
-const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
-const FOCAL_LENGTH: f64 = 1.0;
-
-// (0, 0, 0)
-const CAMERA_ORIGIN: Point3 = Point3 {x: 0.0, y: 0.0, z: 0.0};
-const HORIZONTAL: Vector3 = Vector3 {x: VIEWPORT_WIDTH, y: 0.0, z: 0.0};
-const VERTICAL: Vector3 = Vector3 {x: 0.0, y: VIEWPORT_HEIGHT, z: 0.0};
+use super::{Point3, Vector3, Ray, unit_vector, cross};
 
 pub struct Camera {
     pub origin: Point3,
@@ -19,17 +8,30 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new() -> Self {
-        let lower_left_corner = CAMERA_ORIGIN - (HORIZONTAL / 2.0) - (VERTICAL / 2.0) - Vector3::new(0.0, 0.0, FOCAL_LENGTH);
+    pub fn new(lookfrom: Point3,
+               lookat: Point3, 
+               vup: Vector3, 
+               vfov: f64, 
+               aspect_ratio: f64) -> Self {
+        let viewport_height = 2.0 * (vfov.to_radians() / 2.0).tan();
+        let viewport_width = aspect_ratio * viewport_height;
+
+        let w = unit_vector(&(lookfrom - lookat));
+        let u = unit_vector(&cross(&vup, &w));
+        let v = cross(&w, &u);
+
+        let horizontal = u * viewport_width;
+        let vertical = v * viewport_height;
+        let lower_left_corner = lookfrom - (horizontal / 2.0) - (vertical / 2.0) - w;
         Self {
-            origin: CAMERA_ORIGIN,
+            origin: lookfrom,
             lower_left_corner,
-            horizontal: HORIZONTAL,
-            vertical: VERTICAL
+            horizontal,
+            vertical
         }
     }
 
-    pub fn get_ray(&self, u: f64, v: f64) -> Ray {
-        Ray::new(self.origin, self.lower_left_corner + self.horizontal * u + self.vertical * v - self.origin)
+    pub fn get_ray(&self, s: f64, t: f64) -> Ray {
+        Ray::new(self.origin, self.lower_left_corner + self.horizontal * s + self.vertical * t - self.origin)
     }
 }
