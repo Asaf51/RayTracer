@@ -77,9 +77,9 @@ fn init_world() -> HittableList {
     let mut world = HittableList::new();
 
     let material_ground = Rc::new(Lambertian {albedo: Color::new(0.5, 0.5, 0.5)});
-    let material_center = Rc::new(Lambertian {albedo: Color::new(0.9, 0.1, 0.1)});
-    let material_left = Rc::new(Metal::new(Color::new(0.5, 0.5, 0.5), 0.3));
-    let material_right = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.0));
+    let material_center = Rc::new(Lambertian {albedo: Color::new(0.1, 0.1, 0.7) });
+    let material_left = Rc::new(Dielectric::new(1.5));
+    let material_right = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.3));
 
     // Ground
     world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
@@ -88,7 +88,8 @@ fn init_world() -> HittableList {
     world.objects.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
 
     // Left
-    world.objects.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left)));
+    world.objects.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left.clone())));
+    world.objects.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), -0.4, material_left)));
 
     // Right
     world.objects.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));

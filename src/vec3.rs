@@ -173,3 +173,11 @@ pub fn random_in_unit_sphere() -> Vector3 {
     };
     Vector3::new(x, y, z)
 }
+
+pub fn cross(u: &Vector3, v: &Vector3) -> Vector3 {
+    Vector3::new(
+        u.y * v.z - u.z * v.y,
+        u.z * v.x - u.x * v.z,
+        u.x * v.y - u.y * v.x
+    )
+}
