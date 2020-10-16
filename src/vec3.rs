@@ -174,6 +174,17 @@ pub fn random_in_unit_sphere() -> Vector3 {
     Vector3::new(x, y, z)
 }
 
+pub fn random_in_unit_disk() -> Vector3 {
+    let mut p: Vector3;
+    let mut rng = rand::thread_rng();
+    while {
+        p = Vector3::new(rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0), 0.0);
+        p.length_squared() >= 1.0
+    } {}
+
+    p
+}
+
 pub fn cross(u: &Vector3, v: &Vector3) -> Vector3 {
     Vector3::new(
         u.y * v.z - u.z * v.y,

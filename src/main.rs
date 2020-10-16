@@ -18,18 +18,18 @@ use hittable::{Hit, HittableList};
 use sphere::Sphere;
 use camera::Camera;
 use vec3::{
-    Color, Vector3, Point3, unit_vector, dot_product, clamp, cross
+    Color, Vector3, Point3, unit_vector, dot_product, clamp, cross, random_in_unit_disk
 };
 use material::{Lambertian, Metal, Dielectric};
 
 const IMAGE_BUFFER_SIZE: usize = 100 * 1024 * 1024;
 
-const ASPECT_RATIO: f64 = 16.0 / 10.0;
-const IMAGE_WIDTH: u64 = 1000;
+const ASPECT_RATIO: f64 = 3.0 / 2.0;
+const IMAGE_WIDTH: u64 = 1200;
 const IMAGE_HEIGHT: u64 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u64;
-const VFOV: f64 = 50.0; // In degrees
+const VFOV: f64 = 20.0; // In degrees
 
-const RAYS_PER_PIXEL: f64 = 1000.0;
+const RAYS_PER_PIXEL: f64 = 500.0;
 const MAX_DEPTH: i8 = 50;
 
 fn write_header(file: &mut BufWriter<File>) {
@@ -77,22 +77,44 @@ fn init_world() -> HittableList {
     let mut world = HittableList::new();
 
     let material_ground = Rc::new(Lambertian {albedo: Color::new(0.5, 0.5, 0.5)});
-    let material_center = Rc::new(Lambertian {albedo: Color::new(0.1, 0.1, 0.7) });
-    let material_left = Rc::new(Dielectric::new(1.5));
-    let material_right = Rc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.3));
+    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -1000.0, 0.0), 1000.0, material_ground)));
 
-    // Ground
-    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0, material_ground)));
+    let mut rng = rand::thread_rng();
+    for a in -11..11 {
+        for b in -11..11 {
+            let mat = rng.gen_range(0.0, 1.0);
+            let center = Point3::new(
+                a as f64 + 0.9 * rng.gen_range(0.0, 1.0),
+                0.2,
+                b as f64 + 0.9 * rng.gen_range(0.0, 1.0)
+            );
 
-    // Center
-    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5, material_center)));
+            if (center - Point3::new(4.0, 0.2, 0.0)).length() > 0.9 {
+                if mat < 0.8 {
+                    let albedo = Color::random(0.0, 1.0) * Color::random(0.0, 1.0);
+                    let material = Rc::new(Lambertian {albedo});
+                    world.objects.push(Box::new(Sphere::new(center, 0.2, material)));
+                } else if mat < 0.95 {
+                    let albedo = Color::random(0.5, 1.0);
+                    let fuzz = rng.gen_range(0.0, 0.5);
+                    let material = Rc::new(Metal::new(albedo, fuzz));
+                    world.objects.push(Box::new(Sphere::new(center, 0.2, material)));
+                } else {
+                    let material = Rc::new(Dielectric::new(1.5));
+                    world.objects.push(Box::new(Sphere::new(center, 0.2, material)));
+                }
+            }
+        }
+    }
 
-    // Left
-    world.objects.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), 0.5, material_left.clone())));
-    world.objects.push(Box::new(Sphere::new(Point3::new(-1.0, 0.0, -1.0), -0.4, material_left)));
+    let material1 = Rc::new(Dielectric::new(1.5));
+    world.objects.push(Box::new(Sphere::new(Point3::new(0.0, 1.0, 0.0), 1.0, material1)));
 
-    // Right
-    world.objects.push(Box::new(Sphere::new(Point3::new(1.0, 0.0, -1.0), 0.5, material_right)));
+    let material2 = Rc::new(Lambertian { albedo: Color::new(0.4, 0.2, 0.1) });
+    world.objects.push(Box::new(Sphere::new(Point3::new(-4.0, 1.0, 0.0), 1.0, material2)));
+
+    let material3 = Rc::new(Metal::new(Color::new(0.7, 0.6, 0.5), 0.0));
+    world.objects.push(Box::new(Sphere::new(Point3::new(4.0, 1.0, 0.0), 1.0, material3)));
 
     world
 }
@@ -114,11 +136,14 @@ fn main() {
     let mut buf = init_file("output1.ppm");
     let world = init_world();
 
+    let lookfrom = Point3::new(13.0, 4.0, 3.0);
+    let lookat = Point3::new(0.0, 0.0, 0.0);
+
     let camera = Camera::new(
-        Point3::new(0.0, 0.3, 1.0),
-        Point3::new(0.0, 0.0, -1.0),
+        lookfrom,
+        lookat,
         Point3::new(0.0, 1.0, 0.0),
-        VFOV, ASPECT_RATIO);
+        VFOV, ASPECT_RATIO, 0.1, 10.0);
     let mut rng = rand::thread_rng();
 
     let bar = ProgressBar::new(IMAGE_HEIGHT);
